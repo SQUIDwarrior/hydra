@@ -16,17 +16,25 @@
    @author Mike Deats
 """ 
 import os
+from multiprocessing import Process
 
 class Build(object):
     '''
     Basic class that represents a Build, which is essentially a list
     of build steps to be executed. 
+    
+    Parallelization is controlled by each step's parentStepName parameter.
+    Steps are executed in parallel as long as each step's parent is not a 
+    currently running step. If a build step is reached whose parent is a 
+    currently running step, the build sequence halts until that step has 
+    finished executing. 
     '''
 
-    def __init__(self, buildSteps):
+    def __init__(self, buildType='single', buildSteps):
         '''
         Constructor
         '''
+        self.buildType = buildType
         self.buildSteps = buildSteps;
         
     def getBuildSteps(self):
@@ -38,32 +46,51 @@ class Build(object):
     def runBuild(self):
         i = 0
         status = 0
+        self.runningSteps = {}
         for step in self.buildSteps:
-            print "Executing step #" + `i` + " - " + step.getStepName();
-            status = self.executeStep(step);
-            if status != 0:
-                print "Error executing step! Status code was " + `status`
-                break
+            print "Executing step #" + `i` + " - " + step.getStepName()
+            
+            if (self.buildType == 'single'):
+                status = step.execute()
+                if status != 0:
+                    print "Error executing step! Status code was " + `status`
+                    break
+            elif (self.buildType == 'process'):
+                self.updateRunningSteps()
+                parent = step.getStepParentName()
+                
+
+                p = Process(target=step.execute, name=step.getStepName + i)
+                
+                
             i += 1;
         return status    
-        
-    def executeStep(self, buildStep):
-        return os.system(buildStep.getCommand())
                 
         
 class BuildStep(object):
     '''
     This represents a single step in a build. A step consists
     of a step name, and a command. Commands need to be complete, 
-    i.e. "ant compile"
+    i.e. "ant compile".
+    
+    The parentStepName defines which build step is the parent of this 
+    step. Build parallelization is controlled by this value. 
     '''
     
-    def __init__(self, stepName, command): 
+    def __init__(self, stepName, parentStepName=None, command): 
         self.stepName = stepName
         self.command = command
+        self.parentStepName = parentStepName
         
     def getStepName(self):
         return self.stepName
     
     def getCommand(self):
-        return self.command;
+        return self.command
+    
+    def execute(self):
+        return os.system(self.command)
+    
+    def getParentStepName(self):
+        return self.parentStepName
+    

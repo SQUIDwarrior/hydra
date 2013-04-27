@@ -1,9 +1,21 @@
-'''
-Created on Apr 21, 2013
+"""
+   Copyright 2013 Mike Deats
 
-@author: mike
-'''
-import unittest
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+   
+   @author Mike Deats
+""" 
+import unittest, os
 from hydra.build import Build, BuildStep
 
 
@@ -15,7 +27,9 @@ class Test(unittest.TestCase):
 
 
     def tearDown(self):
-        pass
+        os.remove("/tmp/file1")
+        os.remove("/tmp/file2")
+        os.remove("/tmp/file3")
 
 
     def testAddBuildStep(self):
@@ -24,15 +38,6 @@ class Test(unittest.TestCase):
         newStep = BuildStep("step2", "cmd")
         build.addBuildStep(1, newStep)
         assert newStep == build.getBuildSteps()[1]
-        
-    def testExecuteStep(self):
-        buildStep = BuildStep("step", "touch /tmp/test_file")
-        build = Build([buildStep])
-        assert build.executeStep(buildStep) == 0
-        try:
-            with open('/tmp/test_file'): pass
-        except IOError:
-            self.fail("step did not execute")
             
     def testRunBuild(self):
         buildSteps = [BuildStep("step1", "touch /tmp/file1"), 
@@ -51,11 +56,26 @@ class Test(unittest.TestCase):
                 self.fail("step3 did not execute")
         except IOError:
             pass
+        
+    def testRunBuildStepSeqence(self):
+        buildSteps = [BuildStep("step1", parent=None, "echo 'step1' > /tmp/file1"), 
+                      BuildStep("step2.1", parent='step1', "echo 'step2.1' >> /tmp/file1"), 
+                      BuildStep("step2.2", parent='step1', "echo 'step2.2' >> /tmp/file1"),
+                      BuildStep("step3", parent='step2.2', "cp /tmp/file1 /tmp/file3")];
+        build = Build('process', buildSteps)
+        assert build.runBuild() == 0
+        
+        try:
+            lines = [line.strip() for line in open('/tmp/file1')]
+            assert lines[0] == 'step1'
+            assert lines[1] == 'step2.1' or lines[1] == 'step2.2'
+            assert lines[2] == 'step2.1' or lines[2] == 'step2.2'
+            assert lines[3] == 'step3'
+        except IOError:
+            self.fail("steps did no execute")
             
         
-        
-        
-
+            
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']
