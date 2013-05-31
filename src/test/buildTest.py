@@ -16,7 +16,8 @@
    @author Mike Deats
 """ 
 import unittest, os
-from hydra.build import Build, BuildStep
+from hydra.build import Build
+from hydra.buildStep import BuildStep
 
 
 class Test(unittest.TestCase):

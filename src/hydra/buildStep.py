@@ -15,9 +15,36 @@
    
    @author Mike Deats
 """ 
+import os
 from multiprocessing import Process
-from hydra.build import BuildStep
 
+class BuildStep(object):
+    '''
+    This represents a single step in a build. A step consists
+    of a step name, and a command. Commands need to be complete, 
+    i.e. "ant compile".
+    
+    The parentStepName defines which build step is the parent of this 
+    step. Build parallelization is controlled by this value. 
+    '''
+    
+    def __init__(self, stepName, command, parentStep=None): 
+        self.stepName = stepName
+        self.command = command
+        self.parentStep = parentStep
+        
+    def getStepName(self):
+        return self.stepName
+    
+    def getCommand(self):
+        return self.command
+    
+    def execute(self):
+        return os.system(self.command)
+    
+    def getParentStep(self):
+        return self.parentStep
+    
 class BuildStepProcess(BuildStep):
     '''
     classdocs
@@ -40,5 +67,3 @@ class BuildStepProcess(BuildStep):
     
     def getProcess(self):
         return self.process
-
-        
