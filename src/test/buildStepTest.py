@@ -18,7 +18,6 @@
 import unittest
 from hydra.build import BuildStep
 
-
 class Test(unittest.TestCase):
 
 

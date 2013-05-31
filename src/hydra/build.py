@@ -17,6 +17,7 @@
 """ 
 import os
 from multiprocessing import Process
+from hydra.parallel.multiprocess.buildStepProcess import BuildStepProcess
 
 class Build(object):
     '''
@@ -30,7 +31,7 @@ class Build(object):
     finished executing. 
     '''
 
-    def __init__(self, buildType='single', buildSteps):
+    def __init__(self, buildSteps, buildType='single'):
         '''
         Constructor
         '''
@@ -41,6 +42,10 @@ class Build(object):
         return self.buildSteps;
     
     def addBuildStep(self, order, buildStep):
+        parent = None
+        if (order > 0):
+            parent = self.buildSteps.get(order - 1)
+        buildStep.parentBuildStep = parent
         self.buildSteps.insert(order, buildStep);
         
     def runBuild(self):
@@ -57,14 +62,21 @@ class Build(object):
                     break
             elif (self.buildType == 'process'):
                 self.updateRunningSteps()
-                parent = step.getStepParentName()
+                parent = step.getStepParent()
+                bp = BuildStepProcess(step, i)
                 
-
-                p = Process(target=step.execute, name=step.getStepName + i)
-                
+              
                 
             i += 1;
-        return status    
+        return status
+    
+    def updateRunningSteps(self):
+        for step in self.runningSteps:
+            if (not step.getProcess().is_alive()):
+                self.runningSteps.remove(step)
+            
+            
+                
                 
         
 class BuildStep(object):
@@ -77,10 +89,10 @@ class BuildStep(object):
     step. Build parallelization is controlled by this value. 
     '''
     
-    def __init__(self, stepName, parentStepName=None, command): 
+    def __init__(self, stepName, command, parentStep=None): 
         self.stepName = stepName
         self.command = command
-        self.parentStepName = parentStepName
+        self.parentStep = parentStep
         
     def getStepName(self):
         return self.stepName
@@ -91,6 +103,6 @@ class BuildStep(object):
     def execute(self):
         return os.system(self.command)
     
-    def getParentStepName(self):
-        return self.parentStepName
+    def getParentStep(self):
+        return self.parentStep
     

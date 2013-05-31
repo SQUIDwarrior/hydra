@@ -38,6 +38,7 @@ class Test(unittest.TestCase):
         newStep = BuildStep("step2", "cmd")
         build.addBuildStep(1, newStep)
         assert newStep == build.getBuildSteps()[1]
+        assert newStep.getParentStep() == build.getBuildSteps()[0]
             
     def testRunBuild(self):
         buildSteps = [BuildStep("step1", "touch /tmp/file1"), 
@@ -58,10 +59,13 @@ class Test(unittest.TestCase):
             pass
         
     def testRunBuildStepSeqence(self):
-        buildSteps = [BuildStep("step1", parent=None, "echo 'step1' > /tmp/file1"), 
-                      BuildStep("step2.1", parent='step1', "echo 'step2.1' >> /tmp/file1"), 
-                      BuildStep("step2.2", parent='step1', "echo 'step2.2' >> /tmp/file1"),
-                      BuildStep("step3", parent='step2.2', "cp /tmp/file1 /tmp/file3")];
+        step1 = BuildStep("step1", "echo 'step1' > /tmp/file1")
+        step2_1 = BuildStep("step2.1", "echo 'step2.1' >> /tmp/file1", step1) 
+        step2_2 = BuildStep("step2.2", "echo 'step2.2' >> /tmp/file1", step1)
+        step3 = BuildStep("step3", "cp /tmp/file1 /tmp/file3", step2_2)
+        
+        buildSteps = [step1, step2_1, step2_2, step3]
+        
         build = Build('process', buildSteps)
         assert build.runBuild() == 0
         
@@ -72,7 +76,7 @@ class Test(unittest.TestCase):
             assert lines[2] == 'step2.1' or lines[2] == 'step2.2'
             assert lines[3] == 'step3'
         except IOError:
-            self.fail("steps did no execute")
+            self.fail("steps did not execute")
             
         
             

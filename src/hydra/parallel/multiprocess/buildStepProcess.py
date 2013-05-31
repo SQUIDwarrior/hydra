@@ -15,17 +15,30 @@
    
    @author Mike Deats
 """ 
-import multiprocessing, logging
+from multiprocessing import Process
+from hydra.build import BuildStep
 
-class BuildStepProcess(object):
+class BuildStepProcess(BuildStep):
     '''
     classdocs
     '''
 
 
-    def __init__(self, buildStep):
+    def __init__(self, buildStep, stepId):
         '''
         Constructor
         '''
         self.buildStep = buildStep;
+        self.stepId = stepId;
+        self.process = Process(target=buildStep.execute, name=buildStep.getStepName + stepId)
+        
+    def getBuildStep(self):
+        return self.buildStep
+    
+    def getStepId(self):
+        return self.stepId
+    
+    def getProcess(self):
+        return self.process
+
         
