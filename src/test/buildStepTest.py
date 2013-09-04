@@ -15,7 +15,7 @@
    
    @author Mike Deats
 """ 
-import unittest
+import os, unittest
 from hydra.buildStep import BuildStep
 
 class Test(unittest.TestCase):
@@ -30,12 +30,17 @@ class Test(unittest.TestCase):
 
 
     def testExecute(self):
-        buildStep = BuildStep("step", "touch /tmp/test_file")
+        testFile = "test_file"
+        cmd = "touch " + testFile
+        buildStep = BuildStep("step", cmd)
         assert buildStep.execute() == 0
         try:
-            with open('/tmp/test_file'): pass
+            with open(testFile): pass
         except IOError:
             self.fail("step did not execute")
+        finally:
+            os.remove(testFile)
+            
 
 
 if __name__ == "__main__":

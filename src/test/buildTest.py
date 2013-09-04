@@ -28,56 +28,68 @@ class Test(unittest.TestCase):
 
 
     def tearDown(self):
-        os.remove("/tmp/file1")
-        os.remove("/tmp/file2")
-        os.remove("/tmp/file3")
-
+        try:
+            os.remove("file1")
+            os.remove("file2")
+            os.remove("file3")
+        except IOError:
+            pass
 
     def testAddBuildStep(self):
+        print("Running testAddBuildStep")
         buildSteps = [BuildStep("step1", "cmd"), BuildStep("step3", "cmd")]
         build = Build(buildSteps)
         newStep = BuildStep("step2", "cmd")
-        build.addBuildStep(1, newStep)
+        build.addBuildStep(1, newStep)    
         assert newStep == build.getBuildSteps()[1]
         assert newStep.getParentStep() == build.getBuildSteps()[0]
             
     def testRunBuild(self):
-        buildSteps = [BuildStep("step1", "touch /tmp/file1"), 
-                      BuildStep("step2", "cp /tmp/file1 /tmp/file2"), 
-                      BuildStep("step3", "rm /tmp/file1")];
+        print("Running testRunBuild")
+        buildSteps = [BuildStep("step1", "touch file1"), 
+                      BuildStep("step2", "cp file1 file2"), 
+                      BuildStep("step3", "rm file1")];
         build = Build(buildSteps)
         assert build.runBuild() == 0
         
         try:
-            with open('/tmp/file2'): pass
+            with open('file2'): pass
         except IOError:
             self.fail("step2 did not execute")
             
         try:
-            with open('/tmp/file1'): 
+            with open('file1'): 
                 self.fail("step3 did not execute")
         except IOError:
             pass
         
-    def testRunBuildStepSeqence(self):
-        step1 = BuildStep("step1", "echo 'step1' > /tmp/file1")
-        step2_1 = BuildStep("step2.1", "echo 'step2.1' >> /tmp/file1", step1) 
-        step2_2 = BuildStep("step2.2", "echo 'step2.2' >> /tmp/file1", step1)
-        step3 = BuildStep("step3", "cp /tmp/file1 /tmp/file3", step2_2)
+    def testRunBuildProcessSeqence(self):
+        print("Running testRunBuildStepSeqence")
+        step1 = BuildStep("step1", "echo step1 > file1")
+        step2_1 = BuildStep("step2.1", "echo step2.1 >> file1", step1) 
+        step2_2 = BuildStep("step2.2", "echo step2.2 >> file1", step1)
+        step3 = BuildStep("step3", "cp file1 file3", step2_2)
         
         buildSteps = [step1, step2_1, step2_2, step3]
         
-        build = Build('process', buildSteps)
+        build = Build(buildSteps, 'process')
         assert build.runBuild() == 0
         
         try:
-            lines = [line.strip() for line in open('/tmp/file1')]
+            lines = [line.strip() for line in open('file1')]            
             assert lines[0] == 'step1'
             assert lines[1] == 'step2.1' or lines[1] == 'step2.2'
             assert lines[2] == 'step2.1' or lines[2] == 'step2.2'
-            assert lines[3] == 'step3'
         except IOError:
-            self.fail("steps did not execute")
+            self.fail("steps 1, 2.1, and 2.2 did not execute")
+            
+        try:
+            lines = [line.strip() for line in open('file3')]            
+            assert lines[0] == 'step1'
+            assert lines[1] == 'step2.1' or lines[1] == 'step2.2'
+            assert lines[2] == 'step2.1' or lines[2] == 'step2.2'
+        except IOError:
+            self.fail("step 3 did not execute")
             
         
             

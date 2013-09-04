@@ -15,8 +15,8 @@
    
    @author Mike Deats
 """ 
-import os
-from multiprocessing import Process
+import multiprocessing
+from multiprocessing import Pool
 from hydra.buildStep import BuildStepProcess
 
 class Build(object):
@@ -37,6 +37,7 @@ class Build(object):
         '''
         self.buildType = buildType
         self.buildSteps = buildSteps;
+        self.pool = Pool()
         
     def getBuildSteps(self):
         return self.buildSteps;
@@ -44,36 +45,53 @@ class Build(object):
     def addBuildStep(self, order, buildStep):
         parent = None
         if (order > 0):
-            parent = self.buildSteps.get(order - 1)
-        buildStep.parentBuildStep = parent
+            parent = self.buildSteps[order - 1]
+        buildStep.setParentStep(parent)
         self.buildSteps.insert(order, buildStep);
         
     def runBuild(self):
         i = 0
         status = 0
         self.runningSteps = {}
+        lastProcess = None
         for step in self.buildSteps:
-            print "Executing step #" + `i` + " - " + step.getStepName()
-            
+            print("Executing step", i, "-", step.getStepName())            
             if (self.buildType == 'single'):
                 status = step.execute()
                 if status != 0:
-                    print "Error executing step! Status code was " + `status`
+                    print("Error executing step! Status code was", status)
                     break
             elif (self.buildType == 'process'):
-                self.updateRunningSteps()
-                parent = step.getStepParent()
-                bp = BuildStepProcess(step, i)
-                
-              
+                status += self.updateRunningSteps()
+                parent = step.getParentStep()
+                # Check if the step's parent is running
+                if(parent != None):
+                    parentStep = self.runningSteps.get(parent.getStepName())
+                    if(parentStep != None):
+                        print("Parent step is running, waiting for parent to end")
+                        parentStep.getProcess().join()
+                        status += self.updateRunningSteps()
+                else:
+                    print("Step has no parent")
+                print("Starting new process")
+                lastProcess = BuildStepProcess(step, i)
+                self.runningSteps[step.getStepName()] = lastProcess
+                lastProcess.getProcess().start()              
                 
             i += 1;
+            
+        if(lastProcess != None):
+            print("Waiting for final step to end")
+            lastProcess.getProcess().join()
+            status += self.updateRunningSteps()
         return status
     
     def updateRunningSteps(self):
-        for step in self.runningSteps:
-            if (not step.getProcess().is_alive()):
-                self.runningSteps.remove(step)
+        status = 0
+        for step in list(self.runningSteps):
+            if (not self.runningSteps.get(step).getProcess().is_alive()):
+                status += self.runningSteps.pop(step).getBuildStep().getStatus()                
+        return status
             
             
                 

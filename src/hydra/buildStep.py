@@ -32,6 +32,7 @@ class BuildStep(object):
         self.stepName = stepName
         self.command = command
         self.parentStep = parentStep
+        self.status = -1
         
     def getStepName(self):
         return self.stepName
@@ -40,10 +41,17 @@ class BuildStep(object):
         return self.command
     
     def execute(self):
-        return os.system(self.command)
+        self.status = os.system(self.command)
+        return self.status
     
     def getParentStep(self):
         return self.parentStep
+    
+    def setParentStep(self, newParent):        
+        self.parentStep = newParent
+    
+    def getStatus(self):
+        return self.status
     
 class BuildStepProcess(BuildStep):
     '''
@@ -57,7 +65,8 @@ class BuildStepProcess(BuildStep):
         '''
         self.buildStep = buildStep;
         self.stepId = stepId;
-        self.process = Process(target=buildStep.execute, name=buildStep.getStepName + stepId)
+        procName = buildStep.getStepName() + str(stepId)
+        self.process = Process(target=buildStep.execute(), name=procName)       
         
     def getBuildStep(self):
         return self.buildStep
@@ -67,3 +76,5 @@ class BuildStepProcess(BuildStep):
     
     def getProcess(self):
         return self.process
+    
+    
