@@ -157,6 +157,38 @@ class Test(unittest.TestCase):
         self.assertEqual("build-step-3", config.buildGraph[2].stepName)
         self.assertEqual("bleh", config.buildGraph[2].command)
         self.assertIsNone(config.buildGraph[2].parentStep)
+        
+    def testMultipleBuildStepsOutOfOrder(self):
+        propFile = open("testProps.properties", 'w')
+        '''
+        Print all properties, but omit a few non-required ones
+        '''
+        print("[main]", file=propFile)
+        print("ProjectName: My New Project", file=propFile)
+        print("BuildType: single", file=propFile)
+        print("[build-step-1]", file=propFile)
+        print("StepName: step1", file=propFile)
+        print("Command: bleh", file=propFile)    
+        print("[build-step-3]", file=propFile)
+        print("Command: bleh", file=propFile)
+        print("[build-step-2]", file=propFile)
+        print("StepName: step2", file=propFile)
+        print("ParentStep: step1", file=propFile)
+        print("Command: bleh", file=propFile)      
+        propFile.close()
+
+        config = BuildConfig("testProps.properties")
+
+        self.assertIsNotNone(config.buildGraph)
+        self.assertEqual("step1", config.buildGraph[0].stepName)
+        self.assertEqual("bleh", config.buildGraph[0].command)
+        self.assertIsNone(config.buildGraph[0].parentStep)
+        self.assertEqual("step2", config.buildGraph[1].stepName)
+        self.assertEqual("bleh", config.buildGraph[1].command)
+        self.assertEqual("step1", config.buildGraph[1].parentStep)
+        self.assertEqual("build-step-3", config.buildGraph[2].stepName)
+        self.assertEqual("bleh", config.buildGraph[2].command)
+        self.assertIsNone(config.buildGraph[2].parentStep)
 
 
 if __name__ == "__main__":
