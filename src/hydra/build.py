@@ -32,14 +32,15 @@ class Build(object):
     finished executing. 
     '''
 
-    def __init__(self, buildSteps, buildType='single', parallelCount=-1):
+    def __init__(self, buildSteps, buildType='single', projectName="hydra-build", parallelCount=None):
         '''
         Constructor
         '''
         self.buildType = buildType
         self.buildSteps = buildSteps
+        self.projectName = projectName
         self.parallelCount = parallelCount
-        if (self.parallelCount == -1):
+        if (self.parallelCount == None):
             self.parallelCount = multiprocessing.cpu_count() 
         
     def getBuildSteps(self):
@@ -57,18 +58,19 @@ class Build(object):
         status = 0
         self.runningSteps = {}
         lastProcess = None
+        print("Starting build " + self.projectName)
         for step in self.buildSteps:
-            print("Executing step", i, "-", step.getStepName())            
+            print("Executing step " + i + "-" + step.getStepName())            
             if (self.buildType == 'single'):
                 status = step.execute()
                 if status != 0:
-                    print("Error executing step! Status code was", status)
+                    print("Error executing step! Status code was " + status)
                     break
             elif (self.buildType == 'process'):
                 status += self.updateRunningSteps()
                  
                 while(len(self.runningSteps) >= self.parallelCount):
-                    print("Maximum number of parallel steps (", self.parallelCount, ") running.")
+                    print("Maximum number of parallel steps (" + self.parallelCount + ") running.")
                     print("Waiting for running steps to complete")
                     status += self.updateRunningSteps()
                     sleep(5.0)                    
