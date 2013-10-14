@@ -1,0 +1,90 @@
+###########################################################################
+# Copyright 2013 Mike Deats
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+# http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+###########################################################################
+
+ 
+# Hydra Build properties file
+#
+# This file defines the properties of a build that will use Hydra. 
+# You can use this file as a template for building up your own 
+# hydra.properties for your specific build. 
+# 
+
+
+# (Required) This section defines common settings for the build
+# 
+[main]
+
+# (Optional) Defines the name of the project
+# 
+ProjectName: MyProject
+
+# (Optional) Defines the type of build. Valid options are 'single', 'process',
+# and 'thread'. If not defined, Hydra defaults to 'single'.
+# 
+# single:  The build is executed sequentially (no parallelization)
+# process: The build is executed in parallel based on the build graph using
+#          Python's multiprocessing package to spawn separate processes for each
+#          build step, as needed.
+# thread*:  The build is executed in parallel based on the build graph using
+#          Python's threadingpackage to spawn separate threads for each build 
+#          step, as needed.
+# 
+# *Note that for Hydra versions less than 1.0, the 'thread' option is not supported
+#
+BuildType: process
+
+# (Optional) Defines the max number of steps to run in parallel. This parameter is 
+# ignored when the BuildType is set to 'single'. If this parameter is not defined,
+# Hydra defaults to the number of CPU cores reported by the OS
+# 
+ParallelCount: 2
+
+# (Required) The build-step sections are defined here, using the naming pattern 
+# "build-step-N" where N is the step number, starting at 1. It is required to have
+# at least 1 build-step.
+# 
+# These sections define the build graph
+#
+[build-step-1]
+
+# (Optional) Defines a custom step name (e.g. "Test My Sub Module" or "CompileCore"). 
+# If no name is given, the section name is used. This field MUST be unique.
+# 
+StepName: MyStep1
+
+# (Optional) Defines this step's parent, by step name (e.g. "build-step-3" or 
+# "CompileSubModule1"). This field is used to define the build graph, which 
+# is the core function of Hydra. 
+#
+# The relationship between parent and child steps is one-to-many: One parent can have 
+# many children, but each child can have at most one parent. A child may have no parent, 
+# which means that it does not depend on a previous step and can be executed in parallel
+# with any other running steps. Likewise for many steps with the same parent, except that
+# these steps can only run in parallel once the parent step is completed.
+#
+# Note that for the first build step, this value is ignored.
+#
+ParentStep: build-step-X
+
+# (Required) Defines the command that is executed for this build step. This can be a shell 
+# script, a command-line command, or an Ant task.* 
+# 
+# *Note that for Hydra versions less than 1.0, Ant tasks must be executed as command-line 
+# commands like "ant taskName". Future versions of Hydra will integrate better with Ant
+#
+Command: commandName
+

@@ -16,8 +16,9 @@
    @author Mike Deats
 """ 
 import multiprocessing
-from multiprocessing import Pool
+from time import sleep
 from hydra.buildStep import BuildStepProcess
+
 
 class Build(object):
     '''
@@ -31,23 +32,25 @@ class Build(object):
     finished executing. 
     '''
 
-    def __init__(self, buildSteps, buildType='single'):
+    def __init__(self, buildSteps, buildType='single', parallelCount=-1):
         '''
         Constructor
         '''
         self.buildType = buildType
-        self.buildSteps = buildSteps;
-        self.pool = Pool()
+        self.buildSteps = buildSteps
+        self.parallelCount = parallelCount
+        if (self.parallelCount == -1):
+            self.parallelCount = multiprocessing.cpu_count() 
         
     def getBuildSteps(self):
-        return self.buildSteps;
+        return self.buildSteps
     
     def addBuildStep(self, order, buildStep):
         parent = None
         if (order > 0):
             parent = self.buildSteps[order - 1]
         buildStep.setParentStep(parent)
-        self.buildSteps.insert(order, buildStep);
+        self.buildSteps.insert(order, buildStep)
         
     def runBuild(self):
         i = 0
@@ -63,6 +66,13 @@ class Build(object):
                     break
             elif (self.buildType == 'process'):
                 status += self.updateRunningSteps()
+                 
+                while(len(self.runningSteps) >= self.parallelCount):
+                    print("Maximum number of parallel steps (", self.parallelCount, ") running.")
+                    print("Waiting for running steps to complete")
+                    status += self.updateRunningSteps()
+                    sleep(5.0)                    
+               
                 parent = step.getParentStep()
                 # Check if the step's parent is running
                 if(parent != None):
@@ -74,6 +84,7 @@ class Build(object):
                 else:
                     print("Step has no parent")
                 print("Starting new process")
+      
                 lastProcess = BuildStepProcess(step, i)
                 self.runningSteps[step.getStepName()] = lastProcess
                 lastProcess.getProcess().start()              
